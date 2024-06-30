@@ -1,0 +1,117 @@
+import pygame
+from pygame import Surface, Rect, SurfaceType
+import time
+
+W_WDT = 1000
+W_HGT = 600
+
+# Iniciando o pygame
+pygame.init()
+
+# Criação de janela - pode se usar o window ou screen
+window: Surface = pygame.display.set_mode(size=(W_WDT, W_HGT))
+
+# Carregando e redimensionando a imagem principal
+playerarrow1_orig = pygame.image.load('./asset/playerarrow.png').convert_alpha()
+percent_scale = 300  # Porcentagem de redimensionamento desejada
+
+# Calculando as novas dimensões com base na porcentagem
+new_width = int(playerarrow1_orig.get_width() * percent_scale / 100)
+new_height = int(playerarrow1_orig.get_height() * percent_scale / 100)
+
+# Redimensionando a imagem principal
+playerarrow1: Surface | SurfaceType = pygame.transform.scale(playerarrow1_orig, (new_width, new_height))
+
+# Criação do background e geração da superfície
+bg_surface = pygame.image.load('./asset/bg.png').convert_alpha()
+
+# Carregamento e redimensionamento das imagens de tiro
+player_images = []
+for i in range(101, 113):
+    img_orig = pygame.image.load(f'./asset/tiro{i}.png').convert_alpha()
+
+    # Redimensionando cada imagem de tiro com base na porcentagem
+    img = pygame.transform.scale(img_orig, (new_width, new_height))
+
+    player_images.append(img)
+
+# Retângulo da superfície
+bg_rect: Rect = bg_surface.get_rect(topleft=(0, 0))
+playerarrow1_rect: Rect = playerarrow1.get_rect(topleft=(100, 300))
+
+# Redimensionar a imagem do background para caber na janela
+bg_surface = pygame.transform.scale(bg_surface, (W_WDT, W_HGT))
+
+# Atualizar o retângulo do personagem após o redimensionamento
+playerarrow1_rect = playerarrow1.get_rect(topleft=(100, 300))
+
+# Desenhar na window
+window.blit(source=bg_surface, dest=bg_rect)
+window.blit(source=playerarrow1, dest=playerarrow1_rect)
+
+# Atualização da janela
+pygame.display.flip()
+
+# Variáveis para controle da troca de imagens
+showing_main_image = True  # Mostra a imagem principal inicialmente
+current_image_index = 0  # Controla qual imagem de tiro está sendo mostrada atualmente
+
+image_change_interval = 0.5  # Intervalo de tempo entre as trocas de imagem (em segundos)
+last_change_time = time.time()  # Guarda o tempo da última troca de imagem
+
+# Controle de quadro por segundo FPS
+clock = pygame.time.Clock()
+
+print('setup end')
+print('loop start')
+
+# while true é um loop infinito que mantém o jogo rodando até que alguma condição o interrompa
+running = True
+while running:
+    clock.tick(60)  # Limita a taxa de atualização da tela
+
+    # Captura todos os eventos que ocorreram desde a última iteração
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            running = False
+        elif event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_RETURN:
+                if showing_main_image:
+                    showing_main_image = False
+                else:
+                    showing_main_image = True
+                    current_image_index = 0  # Reinicia para a imagem principal
+
+    # Movimentação do personagem com limite de tela
+    pressed_key = pygame.key.get_pressed()
+    if pressed_key[pygame.K_d] and playerarrow1_rect.right < W_WDT:
+        playerarrow1_rect.x += 1
+    if pressed_key[pygame.K_a] and playerarrow1_rect.left > 0:
+        playerarrow1_rect.x -= 1
+    if pressed_key[pygame.K_w] and playerarrow1_rect.top > 0:
+        playerarrow1_rect.y -= 1
+    if pressed_key[pygame.K_s] and playerarrow1_rect.bottom < W_HGT:
+        playerarrow1_rect.y += 1
+
+    # Redesenhar o background e o personagem
+    window.blit(source=bg_surface, dest=bg_rect)
+
+    if showing_main_image:
+        window.blit(source=playerarrow1, dest=playerarrow1_rect)
+    else:
+        window.blit(source=player_images[current_image_index], dest=playerarrow1_rect)
+
+        # Troca rápida de imagens quando Enter é pressionado
+        current_time = time.time()
+        if current_time - last_change_time >= image_change_interval:
+            current_image_index = (current_image_index + 1) % len(player_images)
+            last_change_time = current_time
+
+            # Verifica se todas as imagens de tiro foram exibidas
+            if current_image_index == 0:
+                showing_main_image = True
+
+    # Atualiza a tela
+    pygame.display.flip()
+
+pygame.quit()
